@@ -45,31 +45,31 @@ export default function SignUp() {
           password,
         }),
         {
-          loading: "Hisob yaratilmoqda...",
-          success: "Hisob muvaffaqiyatli yaratildi!",
+          loading: "Creating account...",
+          success: "Account created successfully!",
           error: (err) =>
             err?.message ??
-            "Ro'yxatdan o'tishda xatolik yuz berdi.",
+            "An error occurred while signing up.",
         }
       );
 
       router.push("/");
     } catch {
-      // toast.promise xatoni o'zi ko'rsatadi
+      // toast.promise handles showing the error
     }
   };
 
   const handleGoogleSignUp = async () => {
     try {
       await toast.promise(signInWithGoogle(), {
-        loading: "Google orqali davom etilmoqda...",
-        success: "Muvaffaqiyatli tizimga kirildi!",
+        loading: "Continuing with Google...",
+        success: "Successfully signed in!",
         error: (err) =>
           err?.message ??
-          "Google orqali davom etishda xatolik yuz berdi.",
+          "An error occurred while continuing with Google.",
       });
     } catch {
-      // toast.promise xatoni o'zi ko'rsatadi
+      // toast.promise handles showing the error
     }
   };
 
@@ -78,11 +78,11 @@ export default function SignUp() {
       <Card className="border-slate-800/80 bg-[#0f0f12] shadow-none">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-lg font-semibold text-white">
-            Ro'yxatdan o'tish
+            Sign Up
           </CardTitle>
 
           <CardDescription className="text-slate-500">
-            Yangi hisob yaratish uchun ma'lumotlaringizni kiriting.
+            Enter your details below to create a new account.
           </CardDescription>
         </CardHeader>
 
@@ -96,7 +96,7 @@ export default function SignUp() {
                 htmlFor="fullName"
                 className="text-sm text-slate-400"
               >
-                To'liq ism
+                Full Name
               </Label>
 
               <Input
@@ -104,7 +104,7 @@ export default function SignUp() {
                 type="text"
                 autoComplete="name"
                 required
-                placeholder="Asadbek Aliyev"
+                placeholder="John Doe"
                 value={fullName}
                 onChange={(e) =>
                   setFullName(e.target.value)
@@ -140,7 +140,7 @@ export default function SignUp() {
                 htmlFor="password"
                 className="text-sm text-slate-400"
               >
-                Parol
+                Password
               </Label>
 
               <Input
@@ -162,8 +162,8 @@ export default function SignUp() {
               className="h-11 w-full bg-indigo-600 font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
             >
               {isSigningUp
-                ? "Yaratilmoqda..."
-                : "Hisob yaratish"}
+                ? "Creating account..."
+                : "Create Account"}
             </Button>
           </form>
         </CardContent>
@@ -176,7 +176,7 @@ export default function SignUp() {
 
             <div className="relative flex justify-center">
               <span className="bg-[#0f0f12] px-3 text-xs uppercase text-slate-500">
-                yoki
+                or
               </span>
             </div>
           </div>
@@ -188,16 +188,16 @@ export default function SignUp() {
             onClick={handleGoogleSignUp}
             className="h-11 w-full border-slate-800 bg-transparent text-slate-300 hover:bg-slate-900 hover:text-white"
           >
-            Google orqali davom etish
+            Continue with Google
           </Button>
 
           <p className="text-center text-sm text-slate-500">
-            Hisobingiz bormi?{" "}
+            Already have an account?{" "}
             <Link
               href="/sign-in"
               className="font-medium text-indigo-400 transition hover:text-indigo-300"
             >
-              Kirish
+              Sign In
             </Link>
           </p>
         </CardFooter>

@@ -43,11 +43,11 @@ export default function SignIn() {
           password,
         }),
         {
-          loading: "Tizimga kirilmoqda...",
-          success: "Tizimga muvaffaqiyatli kirdingiz!",
+          loading: "Signing in...",
+          success: "Successfully signed in!",
           error: (err) =>
             err?.message ??
-            "Tizimga kirishda xatolik yuz berdi.",
+            "An error occurred while signing in.",
         }
       );
 
@@ -58,14 +58,14 @@ export default function SignIn() {
   const handleGoogleSignIn = async () => {
     try {
       await toast.promise(signInWithGoogle(), {
-        loading: "Google orqali kirilmoqda...",
-        success: "Google orqali muvaffaqiyatli kirildi!",
+        loading: "Signing in with Google...",
+        success: "Successfully signed in with Google!",
         error: (err) =>
           err?.message ??
-          "Google orqali kirishda xatolik yuz berdi.",
+          "An error occurred while signing in with Google.",
       });
     } catch {
-      // toast.promise xatoni o'zi ko'rsatadi
+      // toast.promise handles showing the error
     }
   };
 
@@ -74,11 +74,11 @@ export default function SignIn() {
       <Card className="border-slate-800/80 bg-[#0f0f12] shadow-none">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-lg font-semibold text-white">
-            Tizimga kirish
+            Sign In
           </CardTitle>
 
           <CardDescription className="text-slate-500">
-            Hisobingizga kirish uchun ma'lumotlaringizni kiriting.
+            Enter your details below to sign in to your account.
           </CardDescription>
         </CardHeader>
 
@@ -115,14 +115,14 @@ export default function SignIn() {
                   htmlFor="password"
                   className="text-sm text-slate-400"
                 >
-                  Parol
+                  Password
                 </Label>
 
                 <Link
                   href="/forgot-password"
                   className="text-xs text-slate-500 transition hover:text-slate-300"
                 >
-                  Parolni unutdingizmi?
+                  Forgot password?
                 </Link>
               </div>
 
@@ -145,8 +145,8 @@ export default function SignIn() {
               className="h-11 w-full bg-indigo-600 font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
             >
               {isSigningIn
-                ? "Kirilmoqda..."
-                : "Kirish"}
+                ? "Signing in..."
+                : "Sign In"}
             </Button>
           </form>
         </CardContent>
@@ -159,7 +159,7 @@ export default function SignIn() {
 
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-[#0f0f12] px-3 text-slate-500">
-                yoki
+                or
               </span>
             </div>
           </div>
@@ -171,16 +171,16 @@ export default function SignIn() {
             onClick={handleGoogleSignIn}
             className="h-11 w-full border-slate-800 bg-transparent text-slate-300 hover:bg-slate-900 hover:text-white"
           >
-            Google orqali kirish
+            Sign in with Google
           </Button>
 
           <p className="text-center text-sm text-slate-500">
-            Hisobingiz yo‘qmi?{" "}
+            Don't have an account?{" "}
             <Link
               href="/sign-up"
               className="font-medium text-indigo-400 transition hover:text-indigo-300"
             >
-              Ro‘yxatdan o‘tish
+              Sign Up
             </Link>
           </p>
         </CardFooter>
