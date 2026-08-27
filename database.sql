@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
     status TEXT NOT NULL DEFAULT 'active',
     generations_used INTEGER NOT NULL DEFAULT 0,
     generations_limit INTEGER NOT NULL DEFAULT 20,
+    paddle_customer_id TEXT,
+    paddle_subscription_id TEXT,
+    paddle_price_id TEXT,
     current_period_end TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())

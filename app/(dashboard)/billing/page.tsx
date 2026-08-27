@@ -2,118 +2,44 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Check,
   Sparkles,
   Zap,
-  Building2,
   Rocket,
-  Crown,
   ArrowRight,
   Loader2,
-  Lock,
-  Clock,
-  Bell,
+  CreditCard,
+  ExternalLink,
+  ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 import { useBilling } from "@/hooks/use-billing";
-import { toast } from "sonner";
+import { PLANS_CONFIG, PlanConfig } from "@/lib/paddle-plans";
 
-const plansConfig = [
-  {
-    name: "Free",
-    price: "0",
-    limit: 20,
-    description: "Perfect for trying the platform",
-    features: [
-      "20 generations per month",
-      "Access to basic AI models",
-      "Standard quality output",
-      "Community support",
-    ],
-    icon: Zap,
-  },
-  {
-    name: "Starter",
-    price: "9",
-    limit: 150,
-    description: "For individual creators & freelancers",
-    features: [
-      "150 generations per month",
-      "Basic + mid-tier AI models",
-      "Good quality output",
-      "Private collections",
-      "Email support",
-    ],
-    icon: Rocket,
-  },
-  {
-    name: "Pro",
-    price: "19",
-    limit: 400,
-    description: "Best for professionals & power users",
-    features: [
-      "400 generations per month",
-      "Access to all AI models",
-      "High-quality output",
-      "Priority generation queue",
-      "Private collections",
-      "Commercial usage rights",
-    ],
-    popular: true,
-    icon: Sparkles,
-  },
-  {
-    name: "Pro+",
-    price: "29",
-    limit: 800,
-    description: "More power for serious work",
-    features: [
-      "800 generations per month",
-      "Everything in Pro",
-      "Faster generation speed",
-      "Advanced prompt templates",
-    ],
-    icon: Crown,
-  },
-  {
-    name: "Business",
-    price: "49",
-    limit: 2000,
-    description: "Built for small teams",
-    features: [
-      "2,000 generations per month",
-      "Everything in Pro+",
-      "Up to 5 team members",
-      "Shared workspace",
-      "API access",
-      "Custom brand kit",
-    ],
-    icon: Building2,
-  },
-  {
-    name: "Enterprise",
-    price: "99",
-    limit: 5000,
-    description: "For large teams and brands",
-    features: [
-      "5,000 generations per month",
-      "Everything in Business",
-      "Up to 20 team members",
-      "SSO & Admin panel",
-      "Dedicated support",
-      "Custom model fine-tuning",
-    ],
-    icon: Building2,
-  },
-];
+const ICONS_MAP: Record<string, React.ElementType> = {
+  Free: Zap,
+  Starter: Rocket,
+  Pro: Sparkles,
+};
 
 export default function BillingPage() {
-  const { subscription, loading } = useBilling();
+  const {
+    subscription,
+    loading,
+    actionLoading,
+    openCheckout,
+    openCustomerPortal,
+  } = useBilling();
 
   if (loading) {
     return (
-      <div className="w-full h-96 flex items-center justify-center bg-[#09090b]">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+      <div className="flex h-[calc(100vh-3.5rem)] w-full items-center justify-center bg-[#09090b]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          <p className="text-sm text-slate-400">Loading subscription details...</p>
+        </div>
       </div>
     );
   }
@@ -121,188 +47,212 @@ export default function BillingPage() {
   const currentPlanName = subscription?.plan_name || "Free";
   const usedGenerations = subscription?.generations_used || 0;
   const limitGenerations = subscription?.generations_limit || 20;
+  const usagePercent = Math.min(
+    100,
+    Math.round((usedGenerations / Math.max(1, limitGenerations)) * 100)
+  );
+  const isPaidUser = currentPlanName.toLowerCase() !== "free";
 
   return (
-    <div className="relative h-[calc(100vh-3.5rem)] overflow-hidden bg-[#09090b] text-slate-100">
-      {/* ── Blurred Background (Pricing Cards) ── */}
-      <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-        <div className="h-full w-full blur-[5px] opacity-50 scale-[0.97] origin-top">
-          {/* Current plan status */}
-          <div className="mx-auto max-w-6xl px-4 pt-6 pb-4">
-            <div className="rounded-xl border border-slate-800/80 bg-[#0f0f12] p-5 shadow-xl">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Current plan</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-medium text-white">
-                      {currentPlanName}
-                    </span>
-                    <span className="rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 text-[11px] text-indigo-400 font-medium">
-                      Active
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-400">
-                    {usedGenerations} / {limitGenerations} generations used
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  className="h-9 border-slate-800 bg-transparent text-slate-300 text-xs"
-                  disabled
-                >
-                  Manage payment method
-                </Button>
-              </div>
-            </div>
+    <div className="min-h-[calc(100vh-3.5rem)] bg-[#09090b] text-slate-100 pb-16">
+      {/* ── Top Header & Current Subscription Status ── */}
+      <div className="mx-auto max-w-dvw px-4 pt-8 pb-6 sm:px-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              Plans & Pricing
+            </h1>
+            <p className="mt-1.5 text-sm text-slate-400">
+              Choose the perfect plan to unlock the full potential of AI generation.
+            </p>
           </div>
 
-          {/* Plans Grid */}
-          <div className="mx-auto max-w-[1400px] px-4">
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
-              {plansConfig.map((plan) => {
-                const Icon = plan.icon;
-                return (
-                  <div
-                    key={plan.name}
-                    className={`relative rounded-xl border p-5 flex flex-col justify-between ${
-                      plan.popular
-                        ? "border-indigo-500/50 bg-[#0f0f12] shadow-lg shadow-indigo-500/5 ring-1 ring-indigo-500/30"
-                        : "border-slate-800/80 bg-[#0f0f12]"
+          <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/80 border border-slate-800 px-3.5 py-2 rounded-xl shrink-0">
+            <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+            <span>Guaranteed secure payments powered by <strong>Paddle</strong></span>
+          </div>
+        </div>
+
+        {/* Current Plan Card */}
+        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-slate-950/90 p-6 shadow-xl">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Current Plan:
+                </span>
+                <span className="text-xl font-bold text-white">
+                  {currentPlanName}
+                </span>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${isPaidUser
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    : "border-indigo-500/30 bg-indigo-500/10 text-indigo-400"
                     }`}
-                  >
-                    {plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="rounded-full bg-indigo-600 px-3 py-0.5 text-[11px] font-medium text-white shadow-md">
-                          Most Popular
-                        </span>
-                      </div>
-                    )}
+                >
+                  {subscription?.status === "active" ? "Active" : subscription?.status || "Active"}
+                </span>
+              </div>
 
-                    <div>
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Icon
-                            className={`h-4 w-4 ${
-                              plan.popular ? "text-indigo-400" : "text-slate-400"
-                            }`}
-                          />
-                          <h3 className="text-base font-medium text-white">
-                            {plan.name}
-                          </h3>
-                        </div>
-                        <p className="text-xs text-slate-500 min-h-[32px]">
-                          {plan.description}
-                        </p>
-                      </div>
+              {/* Progress bar */}
+              <div className="w-full max-w-md space-y-1.5 pt-1">
+                <div className="flex justify-between text-xs text-slate-400">
+                  <span>Generation Usage:</span>
+                  <span className="font-medium text-slate-200">
+                    {usedGenerations} / {limitGenerations} ({usagePercent}%)
+                  </span>
+                </div>
+                <Progress value={usagePercent} className="h-2 bg-slate-800" />
+              </div>
+            </div>
 
-                      <div className="mb-5">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-semibold tracking-tight text-white">
-                            ${plan.price}
-                          </span>
-                          <span className="text-xs text-slate-500">/mo</span>
-                        </div>
-                      </div>
-
-                      <ul className="mb-6 space-y-2.5">
-                        {plan.features.map((feature) => (
-                          <li key={feature} className="flex items-start gap-2">
-                            <Check className="h-3.5 w-3.5 text-indigo-400 mt-0.5 shrink-0" />
-                            <span className="text-xs text-slate-400 leading-tight">
-                              {feature}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <Button
-                      disabled
-                      className={`w-full h-9 text-xs font-medium ${
-                        plan.popular
-                          ? "bg-indigo-600 text-white"
-                          : "bg-transparent border border-slate-800 text-slate-300"
-                      }`}
-                    >
-                      Upgrade to {plan.name}
-                      <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                );
-              })}
+            <div className="flex items-center gap-3">
+              {isPaidUser && (
+                <Button
+                  variant="outline"
+                  onClick={openCustomerPortal}
+                  disabled={actionLoading === "portal"}
+                  className="h-10 border-slate-700 bg-slate-800/60 text-slate-200 hover:bg-slate-700 hover:text-white text-xs font-medium"
+                >
+                  {actionLoading === "portal" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CreditCard className="mr-2 h-4 w-4 text-indigo-400" />
+                  )}
+                  Manage Subscription
+                  <ExternalLink className="ml-1.5 h-3.5 w-3.5 opacity-60" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Overlay + Centered Modal ── */}
-      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-        <div className="relative w-full max-w-md rounded-2xl border border-slate-700/80 bg-[#0f0f12]/95 backdrop-blur-md p-8 shadow-2xl shadow-black/60 animate-in fade-in zoom-in-95 duration-300">
-          {/* Lock icon */}
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/10 border border-indigo-500/20">
-            <Lock className="h-6 w-6 text-indigo-400" />
-          </div>
+      {/* ── Plans Grid (3 Plans: Free, Starter, Pro) ── */}
+      <div className="mx-auto max-w-dvw px-4 sm:px-6">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+          {PLANS_CONFIG.map((plan: PlanConfig) => {
+            const Icon = ICONS_MAP[plan.name] || Zap;
+            const isCurrent =
+              currentPlanName.toLowerCase() === plan.name.toLowerCase();
+            const isFree = plan.name.toLowerCase() === "free";
+            const isLoadingThis = actionLoading === plan.name;
 
-          <h2 className="text-center text-xl font-semibold text-white mb-2">
-            Billing is temporarily unavailable
-          </h2>
+            return (
+              <div
+                key={plan.name}
+                className={`relative flex flex-col justify-between rounded-2xl border p-6 transition-all duration-200 ${isCurrent
+                  ? "border-emerald-500/60 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 shadow-lg shadow-emerald-500/5 ring-1 ring-emerald-500/30"
+                  : plan.popular
+                    ? "border-indigo-500/60 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 shadow-xl shadow-indigo-500/10 ring-1 ring-indigo-500/40"
+                    : "border-slate-800/80 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900/90"
+                  }`}
+              >
+                {plan.popular && !isCurrent && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 px-3.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-md">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
 
-          <p className="text-center text-sm text-slate-400 leading-relaxed mb-6">
-            We are currently finalizing payment integration and plan management.
-            Very soon you will be able to upgrade, manage subscriptions, and
-            unlock the full power of NicheFX.
-          </p>
+                {isCurrent && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="rounded-full bg-emerald-600 px-3.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-md">
+                      Current Plan
+                    </span>
+                  </div>
+                )}
 
-          <div className="mb-6 rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <Clock className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-medium text-slate-200">
-                  Coming very soon
-                </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  All paid plans and features will be available shortly.
-                </p>
+                <div>
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div
+                        className={`flex h-8 w-8 items-center justify-center rounded-lg ${plan.popular
+                          ? "bg-indigo-500/20 text-indigo-400"
+                          : isCurrent
+                            ? "bg-emerald-500/20 text-emerald-400"
+                            : "bg-slate-800 text-slate-400"
+                          }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <h3 className="text-lg font-bold text-white">
+                        {plan.name}
+                      </h3>
+                    </div>
+                    <p className="text-xs text-slate-400 min-h-[36px] leading-relaxed">
+                      {plan.description}
+                    </p>
+                  </div>
+
+                  <div className="mb-6 border-y border-slate-800/80 py-4">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-extrabold tracking-tight text-white">
+                        ${plan.price}
+                      </span>
+                      <span className="text-xs font-medium text-slate-400">/mo</span>
+                    </div>
+                    <span className="mt-1 block text-xs font-semibold text-indigo-400">
+                      {plan.limit.toLocaleString()} generations per month
+                    </span>
+                  </div>
+
+                  <ul className="mb-8 space-y-3">
+                    {plan.features.map((feature, fIdx) => (
+                      <li key={fIdx} className="flex items-start gap-2.5">
+                        <Check className="h-4 w-4 text-indigo-400 mt-0.5 shrink-0" />
+                        <span className="text-xs text-slate-300 leading-snug">
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  {isCurrent ? (
+                    <Button
+                      disabled
+                      className="w-full h-10 text-xs font-semibold bg-emerald-950/40 text-emerald-400 border border-emerald-500/40 cursor-default"
+                    >
+                      <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-400" />
+                      Current Plan
+                    </Button>
+                  ) : isFree ? (
+                    <Button
+                      disabled
+                      variant="outline"
+                      className="w-full h-10 text-xs font-medium border-slate-800 bg-transparent text-slate-500"
+                    >
+                      Free Plan
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => openCheckout(plan.priceId || "", plan.name)}
+                      disabled={isLoadingThis}
+                      className={`w-full h-10 text-xs font-semibold transition-all ${plan.popular
+                        ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25"
+                        : "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
+                        }`}
+                    >
+                      {isLoadingThis ? (
+                        <>
+                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                          Opening...
+                        </>
+                      ) : (
+                        <>
+                          Upgrade to {plan.name}
+                          <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Sparkles className="h-4 w-4 text-indigo-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-medium text-slate-200">
-                  Full access is on the way
-                </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  You will enjoy unlimited generations, advanced models, team
-                  workspaces, and more.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            <Button
-              onClick={() =>
-                toast.success("You will be notified when billing goes live!")
-              }
-              className="w-full h-10 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium"
-            >
-              <Bell className="mr-2 h-4 w-4" />
-              Notify me when it’s ready
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => window.history.back()}
-              className="w-full h-10 border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white text-sm"
-            >
-              Go back
-            </Button>
-          </div>
-
-          <p className="mt-5 text-center text-[11px] text-slate-600">
-            Thank you for your patience. We’re working hard to deliver the best
-            experience.
-          </p>
+            );
+          })}
         </div>
       </div>
     </div>

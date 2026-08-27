@@ -34,6 +34,9 @@ import {
   SquareArrowLeft,
   ListCheck,
   CheckCircle2Icon,
+  Table as TableIcon,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,27 +118,86 @@ function timeLabel(iso: string) {
   return date.toLocaleDateString("uz-UZ", { month: "short", day: "numeric" });
 }
 
+function splitMarkdownTableRow(line: string): string[] {
+  const trimmed = line.trim();
+  if (!trimmed.includes("|")) return [];
+
+  let s = trimmed;
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|")) s = s.slice(0, -1);
+
+  const cells: string[] = [];
+  let current = "";
+  let inBacktick = false;
+  let inQuote = false;
+  let quoteChar = "";
+
+  for (let idx = 0; idx < s.length; idx++) {
+    const ch = s[idx];
+    const prev = idx > 0 ? s[idx - 1] : "";
+
+    if (ch === "`" && prev !== "\\") {
+      inBacktick = !inBacktick;
+      current += ch;
+    } else if ((ch === '"' || ch === "'") && !inBacktick && prev !== "\\") {
+      if (!inQuote) {
+        inQuote = true;
+        quoteChar = ch;
+      } else if (quoteChar === ch) {
+        inQuote = false;
+      }
+      current += ch;
+    } else if (ch === "|" && prev !== "\\" && !inBacktick) {
+      cells.push(current.trim().replace(/\\\|/g, "|"));
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  cells.push(current.trim().replace(/\\\|/g, "|"));
+  return cells;
+}
+
 function parseTableRows(
   lines: string[],
   startIndex: number,
 ): { rows: string[][]; endIndex: number } {
-  const rows: string[][] = [];
+  const rawRows: string[][] = [];
   let i = startIndex;
+  let headerColCount = 0;
+
   while (i < lines.length) {
     const t = lines[i].trim();
     if (!t.includes("|")) break;
-    const normalized = t.startsWith("|") ? t : `|${t}`;
-    const withEnds = normalized.endsWith("|") ? normalized : `${normalized}|`;
-    const cells = withEnds
-      .slice(1, -1)
-      .split("|")
-      .map((c) => c.trim());
-    if (cells.length < 2) break;
+
+    const cells = splitMarkdownTableRow(t);
+    if (cells.length === 0) break;
+
     const isSeparator = cells.every((c) => /^:?-{2,}:?$/.test(c) || c === "");
-    if (!isSeparator) rows.push(cells);
+    if (!isSeparator) {
+      if (rawRows.length === 0) {
+        headerColCount = cells.length;
+        rawRows.push(cells);
+      } else {
+        if (headerColCount > 0 && cells.length > headerColCount) {
+          const normalized = cells.slice(0, headerColCount - 1);
+          const restJoined = cells.slice(headerColCount - 1).join(" | ");
+          normalized.push(restJoined);
+          rawRows.push(normalized);
+        } else if (headerColCount > 0 && cells.length < headerColCount) {
+          const padded = [...cells];
+          while (padded.length < headerColCount) {
+            padded.push("");
+          }
+          rawRows.push(padded);
+        } else {
+          rawRows.push(cells);
+        }
+      }
+    }
     i++;
   }
-  return { rows, endIndex: i - 1 };
+  return { rows: rawRows, endIndex: i - 1 };
 }
 
 function isImageUrl(url: string) {
@@ -247,6 +309,254 @@ function SourcesSection({ sources }: { sources: ParsedSource[] }) {
   );
 }
 
+function formatTableCell(content: string): React.ReactNode {
+  const trimmed = content.trim();
+  if (!trimmed) return <span className="text-slate-600">—</span>;
+
+  const rawParts = trimmed
+    .split(/<br\s*\/?>|\\n|\n/gi)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  if (rawParts.length > 1) {
+    return (
+      <div className="space-y-2 py-0.5">
+        {rawParts.map((part, idx) => {
+          const isBullet = /^[•\-*]\s+/.test(part);
+          const isNumbered = /^(\d+)[.)]\s+/.test(part);
+          if (isBullet) {
+            return (
+              <div key={idx} className="flex items-start gap-2 text-slate-200">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
+                <span className="min-w-0 flex-1 leading-relaxed">
+                  {formatInline(part.replace(/^[•\-*]\s+/, ""))}
+                </span>
+              </div>
+            );
+          }
+          if (isNumbered) {
+            const numMatch = part.match(/^(\d+)[.)]\s+(.+)$/);
+            return (
+              <div key={idx} className="flex items-start gap-1.5 text-slate-200">
+                <span className="shrink-0 text-xs font-bold text-indigo-400">
+                  {numMatch ? numMatch[1] : idx + 1}.
+                </span>
+                <span className="min-w-0 flex-1 leading-relaxed">
+                  {formatInline(numMatch ? numMatch[2] : part)}
+                </span>
+              </div>
+            );
+          }
+          return (
+            <div key={idx} className="leading-relaxed text-slate-200">
+              {formatInline(part)}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return <span className="leading-relaxed">{formatInline(trimmed)}</span>;
+}
+
+function TableBlock({
+  header,
+  body,
+}: {
+  header: string[];
+  body: string[][];
+}) {
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const colWidths = header.map((h, ci) => {
+      const maxBody = body.reduce(
+        (max, row) => Math.max(max, (row[ci] || "").length),
+        0,
+      );
+      return Math.max(h.length, maxBody, 3);
+    });
+
+    const headerLine = `| ${header.map((h, i) => h.padEnd(colWidths[i])).join(" | ")} |`;
+    const sepLine = `| ${colWidths.map((w) => "-".repeat(w)).join(" | ")} |`;
+    const bodyLines = body.map(
+      (row) =>
+        `| ${row.map((c, i) => (c || "").padEnd(colWidths[i] || 3)).join(" | ")} |`,
+    );
+
+    const fullMd = [headerLine, sepLine, ...bodyLines].join("\n");
+    navigator.clipboard.writeText(fullMd);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const totalCols = header.length;
+  const totalRows = body.length;
+
+  return (
+    <div className="my-5 overflow-hidden rounded-2xl border border-slate-700/70 bg-gradient-to-b from-slate-900/90 to-slate-950/90 shadow-2xl backdrop-blur-md">
+      {/* Table Control Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/95 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500/15 text-indigo-400">
+            <TableIcon className="h-3.5 w-3.5" />
+          </div>
+          <span className="text-xs font-semibold text-slate-300">
+            Jadval
+          </span>
+          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+            {totalCols} ustun • {totalRows} qator
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {/* View mode toggle */}
+          <div className="flex items-center rounded-lg border border-slate-800 bg-slate-950/60 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              title="Jadval ko'rinishi"
+              className={cn(
+                "flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                viewMode === "table"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200",
+              )}
+            >
+              <LayoutList className="h-3 w-3" />
+              <span className="hidden sm:inline">Jadval</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              title="Karta ko'rinishi (Katta matnlar uchun qulay)"
+              className={cn(
+                "flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                viewMode === "cards"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200",
+              )}
+            >
+              <LayoutGrid className="h-3 w-3" />
+              <span className="hidden sm:inline">Kartalar</span>
+            </button>
+          </div>
+
+          {/* Copy button */}
+          <button
+            type="button"
+            onClick={handleCopy}
+            title="Jadvalni nusxalash"
+            className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-1 text-[11px] font-medium text-slate-400 transition-colors hover:border-slate-700 hover:bg-slate-800 hover:text-slate-200"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3 w-3 text-emerald-400" />
+                <span className="text-emerald-400">Nusxalandi</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                <span>Nusxa olish</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {viewMode === "table" ? (
+        /* TABLE VIEW */
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-indigo-500/20 bg-slate-900/95">
+                {header.map((cell, ci) => (
+                  <th
+                    key={ci}
+                    className={cn(
+                      "border-r border-slate-800/80 px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-indigo-300 last:border-r-0",
+                      ci === 0
+                        ? "min-w-[160px] max-w-[220px]"
+                        : "min-w-[200px] max-w-[420px]",
+                    )}
+                  >
+                    {formatInline(cell)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {body.map((row, ri) => (
+                <tr
+                  key={ri}
+                  className="transition-colors hover:bg-indigo-950/20 even:bg-slate-950/30"
+                >
+                  {row.map((cell, ci) => (
+                    <td
+                      key={ci}
+                      className={cn(
+                        "align-top border-r border-slate-800/50 px-4 py-3.5 text-sm text-slate-200 break-words last:border-r-0",
+                        ci === 0
+                          ? "min-w-[160px] max-w-[220px] bg-slate-900/20 font-semibold text-slate-100"
+                          : "min-w-[200px] max-w-[420px]",
+                      )}
+                    >
+                      {formatTableCell(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* CARDS VIEW */
+        <div className="grid grid-cols-1 gap-3.5 p-4 sm:grid-cols-2 lg:grid-cols-3">
+          {body.map((row, ri) => (
+            <div
+              key={ri}
+              className="flex flex-col justify-between rounded-xl border border-slate-800/80 bg-slate-900/70 p-4 shadow-sm transition-all hover:border-indigo-500/40 hover:bg-slate-900"
+            >
+              <div className="space-y-3">
+                {row.map((cell, ci) => {
+                  const headerTitle = header[ci] || `Ustun ${ci + 1}`;
+                  if (ci === 0) {
+                    return (
+                      <div
+                        key={ci}
+                        className="border-b border-slate-800 pb-2.5"
+                      >
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                          {headerTitle}
+                        </span>
+                        <div className="mt-1 text-base font-semibold text-slate-100">
+                          {formatTableCell(cell)}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={ci} className="space-y-1">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        {headerTitle}:
+                      </div>
+                      <div className="text-sm leading-relaxed text-slate-200">
+                        {formatTableCell(cell)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AnswerRenderer({ content }: { content: string }) {
   const lines = content.split("\n");
   const elements: React.ReactNode[] = [];
@@ -309,42 +619,7 @@ function AnswerRenderer({ content }: { content: string }) {
         const header = rows[0];
         const body = rows.slice(1);
         elements.push(
-          <div
-            key={`tbl-${i}`}
-            className="my-4 overflow-x-auto rounded-xl border border-slate-800/80"
-          >
-            <table className="w-full min-w-[480px] border-collapse text-left text-base">
-              <thead>
-                <tr className="border-b border-slate-800 bg-slate-900/80">
-                  {header.map((cell, ci) => (
-                    <th
-                      key={ci}
-                      className="px-3.5 py-3 text-sm font-semibold tracking-wide text-slate-200"
-                    >
-                      {formatInline(cell)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {body.map((row, ri) => (
-                  <tr
-                    key={ri}
-                    className="border-b border-slate-800/60 last:border-0 even:bg-slate-950/40"
-                  >
-                    {row.map((cell, ci) => (
-                      <td
-                        key={ci}
-                        className="px-3.5 py-3 text-base leading-relaxed text-slate-300"
-                      >
-                        {formatInline(cell)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>,
+          <TableBlock key={`tbl-${i}`} header={header} body={body} />,
         );
         i = endIndex + 1;
         continue;
@@ -716,9 +991,9 @@ function StepRow({ step, total }: { step: AgentStep; total: number }) {
         className={cn(
           "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
           step.status === "done" &&
-            "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+          "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
           step.status === "active" &&
-            "border-indigo-400/50 bg-indigo-500/10 text-indigo-300",
+          "border-indigo-400/50 bg-indigo-500/10 text-indigo-300",
           step.status === "pending" && "border-slate-700 text-slate-600",
         )}
       >
@@ -808,7 +1083,7 @@ function CopyMessageButton({ content }: { content: string }) {
     <button
       type="button"
       onClick={() => {
-        navigator.clipboard.writeText(content).catch(() => {});
+        navigator.clipboard.writeText(content).catch(() => { });
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
@@ -932,8 +1207,8 @@ export default function ChatbotPage() {
   const currentStep = activeSteps.find((s) => s.status === "active");
   const currentStepProgress = currentStep
     ? Math.round(
-        ((activeSteps.indexOf(currentStep) + 0.6) / activeSteps.length) * 100,
-      )
+      ((activeSteps.indexOf(currentStep) + 0.6) / activeSteps.length) * 100,
+    )
     : 100;
 
   // O'ng paneldagi "aktiv kategoriya" endi faqat FOYDALANUVCHI tanlagan
@@ -1194,9 +1469,9 @@ export default function ChatbotPage() {
                                 label="Sources"
                                 value={String(
                                   stats.sourcesCount ||
-                                    (message.id === lastAssistant?.id
-                                      ? (lastAssistant?.sources?.length ?? 0)
-                                      : 0),
+                                  (message.id === lastAssistant?.id
+                                    ? (lastAssistant?.sources?.length ?? 0)
+                                    : 0),
                                 )}
                               />
                               <StatCell
