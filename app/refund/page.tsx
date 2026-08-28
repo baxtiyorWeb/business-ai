@@ -85,7 +85,7 @@ export default function RefundPage() {
               You may cancel your NicheFX subscription at any time without penalty or cancellation fees:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-slate-300">
-              <li><strong>How to Cancel:</strong> Navigate to your <strong>Billing Page</strong> inside NicheFX and click &quot;Manage Subscription&quot; to open the Paddle Customer Portal, or email support@nichefx.app.</li>
+              <li><strong>How to Cancel:</strong> Navigate to your <strong>Billing Page</strong> inside NicheFX and click &quot;Manage Subscription&quot; to open the Paddle Customer Portal, or email baxtiyorqurbonnazarov33@gmail.com.</li>
               <li><strong>Access After Cancellation:</strong> Upon cancellation, your paid plan benefits will remain active until the end of your current paid billing period. You will not be charged for subsequent cycles.</li>
             </ul>
           </section>
@@ -101,7 +101,7 @@ export default function RefundPage() {
             </p>
             <ol className="list-decimal pl-5 space-y-2 text-slate-300">
               <li>
-                <strong>Via Email:</strong> Send an email to <span className="font-mono text-xs text-violet-400">support@nichefx.app</span> with your registered email address and receipt number.
+                <strong>Via Email:</strong> Send an email to <span className="font-mono text-xs text-violet-400">baxtiyorqurbonnazarov33@gmail.com</span> with your registered email address and receipt number.
               </li>
               <li>
                 <strong>Via Paddle Buyer Support:</strong> Contact Paddle directly at <a href="https://paddle.net" target="_blank" rel="noreferrer" className="text-violet-400 underline">paddle.net</a> or via your receipt email.
@@ -121,7 +121,6 @@ export default function RefundPage() {
           </section>
         </div>
 
-        {/* Footer legal bar */}
         <div className="mt-8 text-center text-xs text-slate-500 flex flex-wrap items-center justify-center gap-4">
           <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
           <span>•</span>
