@@ -140,7 +140,7 @@ export default function PrivacyPage() {
               For privacy requests, data deletion inquiries, or protection details, please email our privacy team:
             </p>
             <p className="font-mono text-xs text-emerald-400">
-              privacy@nichefx.app
+              baxtiyorqurbonnazarov33@gmail.com
             </p>
           </section>
         </div>

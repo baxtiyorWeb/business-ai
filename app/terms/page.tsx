@@ -78,7 +78,7 @@ export default function TermsPage() {
               <span className="text-indigo-400 font-mono text-base">3.</span> Subscriptions, Billing & Payments
             </h2>
             <p>
-              NicheFX offers both free and paid subscription plans (Starter, Pro). 
+              NicheFX offers both free and paid subscription plans (Starter, Pro).
             </p>
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-xs text-slate-400 space-y-2">
               <p className="font-semibold text-slate-200 flex items-center gap-1.5">
@@ -143,12 +143,11 @@ export default function TermsPage() {
               If you have any questions regarding these Terms of Service, please contact our support team at:
             </p>
             <p className="font-mono text-xs text-indigo-400">
-              support@nichefx.app
+              baxtiyorqurbonnazarov33@gmail.com
             </p>
           </section>
         </div>
 
-        {/* Footer legal bar */}
         <div className="mt-8 text-center text-xs text-slate-500 flex flex-wrap items-center justify-center gap-4">
           <Link href="/terms" className="text-slate-300 font-semibold underline underline-offset-4">Terms of Service</Link>
           <span>•</span>
