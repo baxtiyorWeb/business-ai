@@ -453,16 +453,16 @@ export default function DashboardLayout({
             <p>© {new Date().getFullYear()} NicheFX. All rights reserved.</p>
 
             <div className="flex items-center gap-6">
-              <Link href="#" className="transition-colors hover:text-slate-300">
-                Help
+              <Link href="/privacy" className="transition-colors hover:text-slate-300">
+                Privacy Policy
               </Link>
 
-              <Link href="#" className="transition-colors hover:text-slate-300">
-                Privacy
+              <Link href="/terms" className="transition-colors hover:text-slate-300">
+                Terms of Service
               </Link>
 
-              <Link href="#" className="transition-colors hover:text-slate-300">
-                Terms
+              <Link href="/refund" className="transition-colors hover:text-slate-300">
+                Refund Policy
               </Link>
             </div>
           </div>
